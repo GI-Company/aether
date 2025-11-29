@@ -1,0 +1,9 @@
+{"ts":"2025-11-25T23:05:29.929209-05:00","topic":"ai.chat","model":"local","latency_ms":3180,"req_hash":"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824","out_len":205}
+{"ts":"2025-11-27T15:15:33.267867-05:00","topic":"ai.chat","model":"local","latency_ms":30283,"req_hash":"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824","out_len":2174}
+{"ts":"2025-11-27T16:32:41.759253-05:00","topic":"ai.chat","model":"local","latency_ms":58811,"req_hash":"f4e454f802b88d2f64168ff1742e8cf413fd677d38b87cbefb45821f8981b912","out_len":2230}
+{"ts":"2025-11-27T16:53:03.036487-05:00","topic":"ai.chat","model":"local","latency_ms":11614,"req_hash":"1463f7fdf3d6a1c5410fcf97377cfc13bcdf73f465555608b9373c27a349d9d9","out_len":857}
+{"ts":"2025-11-27T17:07:02.254061-05:00","topic":"ai.chat","model":"local","latency_ms":15183,"req_hash":"fa690b82061edfd2852629aeba8a8977b57e40fcb77d1a7a28b26cba62591204","out_len":923}
+{"ts":"2025-11-27T17:42:38.423938-05:00","topic":"ai.chat","model":"local","latency_ms":34458,"req_hash":"1df9ce6e6dbad0ac9ef84792a4be31aea4c6a38bd121bf08ef8bf158cdd4038b","out_len":1827}
+{"ts":"2025-11-27T17:44:43.106064-05:00","topic":"ai.chat","model":"local","latency_ms":51074,"req_hash":"d81960f8c5aa3c69b57e14c4cbb748caaa79a7ff88d1abe72297aa9084d1a3f0","out_len":2005}
+{"ts":"2025-11-27T18:23:30.523157-05:00","topic":"ai.chat","model":"local","latency_ms":17091,"req_hash":"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824","out_len":1274}
+{"ts":"2025-11-27T18:30:32.724568-05:00","topic":"ai.chat","model":"local","latency_ms":10469,"req_hash":"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824","out_len":91}

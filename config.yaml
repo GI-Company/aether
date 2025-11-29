@@ -1,0 +1,66 @@
+http_port: 8080
+ws_port: 8081
+
+ai:
+  enabled: true
+  provider: google_gemini
+  api_key_env: GEMINI_API_KEY
+
+ai_local:
+  enabled: true
+  python_path: ".venv_ai/bin/python"
+  hf_cache_dir: ""
+  allow_network_for_hf_download: true  # Required to download small models from HuggingFace
+  pool_size: 1
+  models:
+    complete_primary: "phi3"                          # Phi-3-Mini-4K-Instruct (3.8B, ~2.3GB, best quality)
+    complete_alt: "phi3"                              # Same model for consistency
+    embed: "sentence-transformers/all-MiniLM-L6-v2"   # Sentence embeddings (90MB)
+  timeouts:
+    infer_ms: 90000
+    embed_ms: 30000
+  limits:
+    max_new_tokens: 256  # Reduced for faster responses (512 for detailed answers)
+    max_embed_batch: 64
+
+vfs:
+  default_root: /home/user
+
+auth:
+  enabled: false
+  jwt_secret: "your-super-secret-and-long-jwt-secret"
+
+permissions:
+  enabled: true
+
+logging:
+  level: info
+
+# ---
+# Optional security and guardrails (modern config loader supports these flat keys)
+# Uncomment and adjust as needed.
+
+# admin_token: "changeme-admin-token"
+#   # If a client connects with header `Authorization: Bearer <token>` matching this value,
+#   # it is granted admin privileges (bypasses permission and rate‑limit gates). Use only in
+#   # trusted environments.
+
+# permissions:
+#   - topic_prefix: "vfs:"
+#     allow: true
+#   - topic_prefix: "vm."
+#     allow: true
+#   - topic_prefix: "system."
+#     allow: false
+#   # Note: When any rules are present, the default policy becomes deny for non‑matching topics.
+
+# rate_limits:
+#   - topic: "vm.spawn"
+#     limit: 5        # tokens per window
+#     burst: 2        # additional burst tokens
+#     window_ms: 60000
+#   - topic: "ai.chat"
+#     limit: 10
+#     burst: 5
+#     window_ms: 60000
+#   # Exceeding a limit emits a correlated `{ code: "rate_limited", details: { resetMs } }` on the derived error topic.

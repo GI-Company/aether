@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+
+set -e
+
+# -----------------------
+# Config
+# -----------------------
+GO_VERSION="1.24"
+NODE_VERSION="20"
+FRONTEND_DIR="frontend"
+BACKEND_DIR="backend"
+BINARY_PATH="./bin/aether"
+ASSETS_WEB_DIR="assets/web"
+
+# -----------------------
+# Functions
+# -----------------------
+function command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+print_hr() {
+  echo "----------------------------------------"
+}
+
+# -----------------------
+# Install Go if missing
+# -----------------------
+if ! command_exists go; then
+    echo "Go not found, installing..."
+    curl -LO "https://go.dev/dl/go${GO_VERSION}.darwin-arm64.tar.gz"
+    sudo tar -C /usr/local -xzf "go${GO_VERSION}.darwin-arm64.tar.gz"
+    export PATH=$PATH:/usr/local/go/bin
+    echo "Go installed."
+else
+    echo "Go found: $(go version)"
+fi
+
+# -----------------------
+# Install Node/NPM if missing
+# -----------------------
+if ! command_exists npm; then
+    echo "Node/NPM not found, installing..."
+    curl -fsSL https://fnm.vercel.app/install | bash
+    export PATH=$HOME/.fnm:$PATH
+    eval "$(fnm env)"
+    fnm install $NODE_VERSION
+    fnm use $NODE_VERSION
+    echo "Node installed: $(node -v), npm: $(npm -v)"
+else
+    echo "Node/NPM found: $(node -v), $(npm -v)"
+fi
+
+# -----------------------
+# Backend setup
+# -----------------------
+echo "Running Go mod tidy and vendoring..."
+cd "$BACKEND_DIR"
+go mod tidy
+go mod vendor
+cd ..
+
+# -----------------------
+# Frontend setup
+# -----------------------
+echo "Installing frontend dependencies..."
+cd "$FRONTEND_DIR"
+npm install
+echo "Building frontend..."
+npm run build
+cd ..
+
+# -----------------------
+# Optional: ai.local (Python HF worker) setup
+# -----------------------
+if [[ "${AETHER_AI_LOCAL_ENABLED}" == "1" || "${AETHER_AI_LOCAL_ENABLED}" == "true" || "${AI_SETUP}" == "1" ]]; then
+  print_hr
+  echo "ai.local enabled — preparing Python environment and verifying models..."
+  # Check Python
+  if ! command_exists python3; then
+    echo "ERROR: python3 is required for ai.local but was not found on PATH."
+    echo "Install Python 3 (e.g., via Homebrew: brew install python) or disable ai.local by unsetting AETHER_AI_LOCAL_ENABLED."
+    exit 1
+  fi
+
+  # Create a dedicated virtualenv for AI worker to avoid polluting global site-packages
+  VENV_DIR=".venv_ai"
+  if [[ ! -d "$VENV_DIR" ]]; then
+    echo "Creating Python virtualenv at $VENV_DIR ..."
+    python3 -m venv "$VENV_DIR"
+  fi
+  # shellcheck disable=SC1090
+  source "$VENV_DIR/bin/activate"
+  echo "Using Python: $(python --version)"
+  echo "Upgrading pip/setuptools/wheel..."
+  python -m pip install -U pip setuptools wheel >/dev/null
+
+  # Install runtime deps (prefer binary wheels)
+  echo "Installing Python deps: transformers, sentence-transformers, torch (CPU)..."
+  # Try PyTorch CPU index first, then fall back to PyPI
+  python -m pip install -U --prefer-binary transformers sentence-transformers >/dev/null || true
+  python -m pip install -U --prefer-binary torch --index-url https://download.pytorch.org/whl/cpu >/dev/null || \
+  python -m pip install -U --prefer-binary torch >/dev/null || true
+
+  # Ensure the worker script is executable
+  SERVE_PY="models/runner/serve.py"
+  if [[ -f "$SERVE_PY" ]]; then
+    chmod +x "$SERVE_PY" || true
+  else
+    echo "WARNING: $SERVE_PY not found. The ai.local worker may be missing."
+  fi
+
+  # Verify model directories (informational)
+  M1="models/ultra/ultra_50g"
+  M2="models/graphsgpt/graphsgpt-4w"
+  if [[ ! -d "$M1" ]]; then
+    echo "WARNING: $M1 not found. Place your Ultra model at this path or configure ai_local.models.complete_primary."
+  fi
+  if [[ ! -d "$M2" ]]; then
+    echo "WARNING: $M2 not found. Place your GraphsGPT model at this path or configure ai_local.models.complete_alt."
+  fi
+
+  # Optional: set HF cache dir for build-time validation downloads (env carried into worker by backend too)
+  if [[ -n "$HF_CACHE_DIR" ]]; then
+    export HF_HOME="$HF_CACHE_DIR"
+    export TRANSFORMERS_CACHE="$HF_CACHE_DIR"
+    echo "HF cache: $HF_CACHE_DIR"
+  fi
+
+  # Deactivate venv to avoid impacting Go build environment
+  deactivate || true
+fi
+
+# -----------------------
+# Build backend binary
+# -----------------------
+echo "Building backend..."
+mkdir -p ./bin
+# Prepare embedded assets: copy frontend/dist into assets/web for go:embed
+echo "Preparing embedded frontend assets..."
+rm -rf "$ASSETS_WEB_DIR"
+mkdir -p "$ASSETS_WEB_DIR"
+cp -R "$FRONTEND_DIR/dist/"* "$ASSETS_WEB_DIR"/
+go build -o "$BINARY_PATH" ./backend
+
+# -----------------------
+# Run the application
+# -----------------------
+echo "Starting AetherOS..."
+"$BINARY_PATH"
